@@ -1,5 +1,6 @@
 package io.onedonut.re_droid
 
+import io.onedonut.re_droid.utils.Four
 import io.onedonut.re_droid.utils.One
 import io.onedonut.re_droid.utils.Two
 import org.assertj.core.api.Assertions.assertThat
@@ -42,6 +43,7 @@ class TestRDB {
                                 field3 = appState.field3 + 1
                         )
                     is Action.AddZeroToField1 -> appState.copy( field1 = appState.field1 + 0 )
+                    is Action.AddIntToField4 -> appState.copy( field4 = appState.field4 + listOf(action.x))
                     else -> appState
                 }
             }
@@ -59,6 +61,13 @@ class TestRDB {
         assertThat(rdb.curAppState.field2).isEqualTo(2)
         assertThat(rdb.curAppState.field3).isEqualTo(2)
         assertThat(rdb.curAppState.field4).isEqualTo(listOf<Int>())
+
+
+        rdb.dispatch(Action.AddIntToField4(23))
+        assertThat(rdb.curAppState.field1).isEqualTo(2)
+        assertThat(rdb.curAppState.field2).isEqualTo(2)
+        assertThat(rdb.curAppState.field3).isEqualTo(2)
+        assertThat(rdb.curAppState.field4).isEqualTo(listOf(23))
     }
 
     @Test
@@ -86,6 +95,15 @@ class TestRDB {
         rdb.dispatch(Action.IncrementField1And2And3)
         // Query should have updated since AppState.field1 AND AppState.field2 changed
         assertThat(timesQueryEmitted).isEqualTo(4)
+
+
+        var timesQueryEmitted1 = 0
+        rdb.execute { One(it.field4) }
+            .subscribe { timesQueryEmitted1++ }
+        assertThat(timesQueryEmitted1).isEqualTo(1)
+
+        rdb.dispatch(Action.AddIntToField4(42))
+        assertThat(timesQueryEmitted1).isEqualTo(2)
     }
 
     @Test
@@ -106,5 +124,14 @@ class TestRDB {
         // (not really fair since it depends on how the identity transform is implemented)
         rdb.dispatch(Action.AddZeroToField1)
         assertThat(timesQueryEmitted).isEqualTo(1)
+
+
+        var timesQueryEmitted1 = 0
+        rdb.execute { Four(it.field1, it.field2, it.field3, it.field4) }
+            .subscribe { timesQueryEmitted1++ }
+        assertThat(timesQueryEmitted1).isEqualTo(1)
+
+        rdb.dispatch(Action.AddZeroToField1)
+        assertThat(timesQueryEmitted1).isEqualTo(1)
     }
 }
