@@ -1,6 +1,5 @@
 package io.onedonut.re_droid
 
-import android.util.Log
 import io.onedonut.re_droid.utils.Two
 import rx.Observable
 import rx.subjects.PublishSubject
