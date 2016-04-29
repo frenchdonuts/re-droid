@@ -21,6 +21,8 @@ class RDB<AppState, Action>(val init: AppState,
     private var observers: Map<Any, Observable<out Any?>> = hashMapOf()
 
     // Our Pure Middleware - simply applies the reducer
+    // This Middleware should be applied last, so there is no dispatcher to dispatch after this.
+    // (Though, technically, there is the the dispatcher that does nothing)
     val pure: ((RDB<AppState, Action>, Action) -> Unit) -> ((RDB<AppState, Action>, Action) -> Unit) =
             {
                 dispatcher ->
@@ -28,9 +30,6 @@ class RDB<AppState, Action>(val init: AppState,
                     rdb, action ->
                     curAppState = reducer(action, rdb.curAppState)
                     appStateSubject.onNext(curAppState)
-                    // This Middleware should be applied last, so there should be no Middleware
-                    // to dispatch after this
-
                 }
             }
 
@@ -47,8 +46,8 @@ class RDB<AppState, Action>(val init: AppState,
                             currentMiddleware.invoke(acc)
                         }
                 )
-        // ^Note that though Pure is the first Middleware in the list, it is applied LAST
-        // In general, the Middleware gets applied right-to-left
+        // ^Note that though Pure is the FIRST Middleware in the LIST, it is applied LAST.
+        // Middleware gets applied "right-to-left".
     }
 
     fun dispatch(action: Action): Unit {
@@ -59,26 +58,35 @@ class RDB<AppState, Action>(val init: AppState,
     fun <R> execute(g: (AppState) -> R): Observable<R> {
         //
         if (!observers.containsKey(g)) {
-            Log.i("RDB.execute", "Adding a new query to our map...")
             val o: Observable<R> = appStateSubject.asObservable()
-                    // Run the query on the newAppState; push out oldQueryResult
+                    // We re-run the query every time there is a dispatch...
                     .scan (Two(g(curAppState), g(curAppState)),
                             { acc, newAppState ->
                                 val (curQueryResult, oldQueryResult) = acc
+
+                                // Benchmarking the non-equality check ----
+                                /*
+                                 var first = g(newAppState)
+                                 var second = curQueryResult
+                                 val t0 = System.nanoTime();
+                                 first != second
+                                 val t1 = System.nanoTime();
+                                 Log.i("RDBBenchmark", "${t1 - t0}ns")
+                                 */
+                                // ----------------------------------------
+                                // ^Longest time seen was 8542ns == 0.008542ms
+
                                 // The current query result becomes the old query result
                                 // We drop the old query result
                                 Two(g(newAppState), curQueryResult)
                             }
                     )
-                    // Only emit if new query result is different from the last query result
-                    // Two assumptions make this work.
-                    //   1) The data is immutable (this is why we use Kotlin's data classes)
-                    //   2) The query only grabs data from AppState - it does not process it
-                    //  This way, structural equality is the same as reference equality.
+                    // ...but we emit only if the new query result is different from the old query result
                     .filter { p -> p._1 != p._2 }
                     .map { it._1 }
 
-            // Make sure this thing is running even if "no one" is subscribed to it
+            // Make sure this thing is running(queries are updating) even if "no one" is subscribed to it
+            o.subscribe()
             observers += Pair(g, o)
         }
 
