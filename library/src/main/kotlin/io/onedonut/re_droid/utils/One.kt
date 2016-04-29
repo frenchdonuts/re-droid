@@ -8,7 +8,7 @@ package io.onedonut.re_droid.utils
 data class One <A>(val _1: A) {
     override fun equals(other: Any?): Boolean {
         if (other is One<*>) {
-            return _1 === (other as One<*>)._1
+            return _1 === other._1
         }
         return false
     }

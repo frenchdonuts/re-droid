@@ -2,18 +2,31 @@ package io.onedonut.re_droid
 
 import io.onedonut.re_droid.utils.Two
 import rx.Observable
+import rx.Scheduler
+import rx.schedulers.Schedulers
 import rx.subjects.PublishSubject
 
 /**
  * Created by pamelactan on 4/24/16.
  *
  * I wish we could do type aliases...
+ *
+ * @param init The initial State of your Application
+ * @param reducer Your implementation of the State Transitions
+ * @param scheduler The rx.Scheduler on which you run your Reducer and deliver your query results
+ * @param middlewares
+ *
  */
-class RDB<AppState, Action>(val init: AppState,
-                            val reducer: (Action, AppState) -> AppState,
+class RDB<AppState, Action>(private val init: AppState,
+                            private val reducer: (Action, AppState) -> AppState,
+                            private val scheduler: Scheduler = Schedulers.immediate(),
                             vararg middlewares: ((RDB<AppState, Action>, Action) -> Unit) -> (RDB<AppState, Action>, Action) -> Unit) {
     //
-    var curAppState: AppState = init
+    private var _curAppState: AppState = init
+    val curAppState: AppState
+        get() {
+            return _curAppState
+        }
 
     private val appStateSubject: PublishSubject<AppState> = PublishSubject.create()
 
@@ -22,13 +35,21 @@ class RDB<AppState, Action>(val init: AppState,
     // Our Pure Middleware - simply applies the reducer
     // This Middleware should be applied last, so there is no dispatcher to dispatch after this.
     // (Though, technically, there is the the dispatcher that does nothing)
-    val pure: ((RDB<AppState, Action>, Action) -> Unit) -> ((RDB<AppState, Action>, Action) -> Unit) =
+    private val pure: ((RDB<AppState, Action>, Action) -> Unit) -> ((RDB<AppState, Action>, Action) -> Unit) =
             {
                 dispatcher ->
                 {
                     rdb, action ->
-                    curAppState = reducer(action, rdb.curAppState)
-                    appStateSubject.onNext(curAppState)
+                    //curAppState = reducer(action, rdb.curAppState)
+                    // Make sure we run our Reducer on the right Scheduler
+                    // For Android, it'll usually be AndroidSchedulers.mainThread()
+                    Observable.just(_curAppState)
+                            .observeOn(scheduler)
+                            .subscribeOn(scheduler)
+                            .map({ reducer(action, it) })
+                            .doOnNext({ _curAppState = it })
+                            .subscribe { appStateSubject.onNext(it) }
+                    //appStateSubject.onNext(reducer(action, curAppState))
                 }
             }
 
@@ -59,7 +80,7 @@ class RDB<AppState, Action>(val init: AppState,
         if (!observers.containsKey(g)) {
             val o: Observable<R> = appStateSubject.asObservable()
                     // We re-run the query every time there is a dispatch...
-                    .scan (Two(g(curAppState), g(curAppState)),
+                    .scan (Two(g(_curAppState), g(_curAppState)),
                             { acc, newAppState ->
                                 val (curQueryResult, oldQueryResult) = acc
 
@@ -90,8 +111,9 @@ class RDB<AppState, Action>(val init: AppState,
         }
 
         // Make sure that new subscribers get the latest query result upon subscribing
+        // Can this cause redundant emissions to the Subscriber?
         return Observable.merge(
                 observers[g],
-                Observable.just(g(curAppState))) as Observable<R>
+                Observable.just(g(_curAppState))) as Observable<R>
     }
 }
