@@ -17,10 +17,10 @@ import rx.subjects.PublishSubject
  * @param middlewares
  *
  */
-class RDB<AppState, Action>(private val init: AppState,
+class RDB<AppState>(private val init: AppState,
                             private val reducer: (Action, AppState) -> AppState,
                             private val scheduler: Scheduler = Schedulers.immediate(),
-                            vararg middlewares: ((RDB<AppState, Action>, Action) -> Unit) -> (RDB<AppState, Action>, Action) -> Unit) {
+                            vararg middlewares: ((RDB<AppState>, Action) -> Unit) -> (RDB<AppState>, Action) -> Unit) {
     //
     private var _curAppState: AppState = init
     val curAppState: AppState
@@ -35,7 +35,7 @@ class RDB<AppState, Action>(private val init: AppState,
     // Our Pure Middleware - simply applies the reducer
     // This Middleware should be applied last, so there is no dispatcher to dispatch after this.
     // (Though, technically, there is the the dispatcher that does nothing)
-    private val pure: ((RDB<AppState, Action>, Action) -> Unit) -> ((RDB<AppState, Action>, Action) -> Unit) =
+    private val pure: ((RDB<AppState>, Action) -> Unit) -> ((RDB<AppState>, Action) -> Unit) =
             {
                 dispatcher ->
                 {
@@ -54,7 +54,7 @@ class RDB<AppState, Action>(private val init: AppState,
             }
 
     // Start off w/ a dispatcher that does nothing...
-    private var dispatcher: (RDB<AppState, Action>, Action) -> Unit = { rdb, action -> }
+    private var dispatcher: (RDB<AppState>, Action) -> Unit = { rdb, action -> }
 
     init {
         // ...and end up w/ a dispatcher that applies all our Middleware!
