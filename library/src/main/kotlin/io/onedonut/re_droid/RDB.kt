@@ -40,7 +40,6 @@ class RDB<AppState>(private val init: AppState,
                 dispatcher ->
                 {
                     rdb, action ->
-                    //curAppState = reducer(action, rdb.curAppState)
                     // Make sure we run our Reducer on the right Scheduler
                     // For Android, it'll usually be AndroidSchedulers.mainThread()
                     Observable.just(_curAppState)
@@ -49,7 +48,6 @@ class RDB<AppState>(private val init: AppState,
                             .map({ reducer(action, it) })
                             .doOnNext({ _curAppState = it })
                             .subscribe { appStateSubject.onNext(it) }
-                    //appStateSubject.onNext(reducer(action, curAppState))
                 }
             }
 
