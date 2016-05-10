@@ -11,7 +11,7 @@ import io.onedonut.re_droid.RDB
  * Middleware :: Dispatcher -> Dispatcher
  */
 
-fun <AppState> logActionsAndState(dispatcher: ((RDB<AppState>, Action) -> Unit)): ((RDB<AppState>, Action) -> Unit) =
+fun <AppState> logActions(dispatcher: ((RDB<AppState>, Action) -> Unit)): ((RDB<AppState>, Action) -> Unit) =
         { rdb, action ->
             //
             Log.i("Action dispatched", "$action")

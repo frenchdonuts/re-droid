@@ -64,8 +64,9 @@ class RDB<AppState>(private val init: AppState,
                             currentMiddleware.invoke(acc)
                         }
                 )
-        // ^Note that though Pure is the FIRST Middleware in the LIST, it is applied LAST.
+        // ^Note that though Pure is the FIRST Middleware applied in the list, it is RUN LAST.
         // Middleware gets applied "right-to-left".
+        // Middleware runs "right-to-left"("outside-in") then "left-to-right"("inside-out").
     }
 
     fun dispatch(action: Action): Unit {
@@ -83,6 +84,7 @@ class RDB<AppState>(private val init: AppState,
                                 val (curQueryResult, oldQueryResult) = acc
 
                                 // Benchmarking the non-equality check ----
+                                // Note: Using One, Two, etc. containers
                                 /*
                                  var first = g(newAppState)
                                  var second = curQueryResult
