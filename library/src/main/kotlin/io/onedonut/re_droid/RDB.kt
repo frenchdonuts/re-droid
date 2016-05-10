@@ -7,7 +7,7 @@ import rx.schedulers.Schedulers
 import rx.subjects.PublishSubject
 
 /**
- * Created by pamelactan on 4/24/16.
+ * Created by frenchdonuts on 4/24/16.
  *
  * I wish we could do type aliases...
  *

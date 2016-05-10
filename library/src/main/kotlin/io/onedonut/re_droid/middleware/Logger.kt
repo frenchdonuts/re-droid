@@ -5,7 +5,7 @@ import io.onedonut.re_droid.Action
 import io.onedonut.re_droid.RDB
 
 /**
- * Created by pamelactan on 4/24/16.
+ * Created by frenchdonuts on 4/24/16.
  *
  * Dispatcher : (RDB<AppState, Action>, Action) -> Unit
  * Middleware :: Dispatcher -> Dispatcher

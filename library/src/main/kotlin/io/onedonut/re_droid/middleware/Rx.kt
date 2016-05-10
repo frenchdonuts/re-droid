@@ -6,7 +6,7 @@ import rx.Observable
 import rx.Subscription
 
 /**
- * Created by pamelactan on 4/29/16.
+ * Created by frenchdonuts on 4/29/16.
  */
 
 open class RxEffect(val asyncComputation: Observable<Action>, val cancellationKey: String = "", origin: String) : Action(origin)
