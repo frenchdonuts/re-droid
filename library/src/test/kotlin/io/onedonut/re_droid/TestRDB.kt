@@ -1,6 +1,5 @@
 package io.onedonut.re_droid
 
-import io.onedonut.re_droid.Action
 import io.onedonut.re_droid.utils.Four
 import io.onedonut.re_droid.utils.One
 import io.onedonut.re_droid.utils.Two
@@ -17,15 +16,15 @@ class TestRDB {
                         val field4: List<Int> = listOf())
 
     //
-    object IncrementField1 : Action("")
+    object IncrementField1 : Action
 
-    object IncrementField2And3 : Action("")
+    object IncrementField2And3 : Action
 
-    object IncrementField1And2And3 : Action("")
+    object IncrementField1And2And3 : Action
 
-    object AddZeroToField1 : Action("")
+    object AddZeroToField1 : Action
 
-    class AddIntToField4(val x: Int) : Action("")
+    class AddIntToField4(val x: Int) : Action
 
     val reducer: (Action, AppState) -> AppState =
             {
@@ -70,6 +69,12 @@ class TestRDB {
         assertThat(rdb.curAppState.field2).isEqualTo(2)
         assertThat(rdb.curAppState.field3).isEqualTo(2)
         assertThat(rdb.curAppState.field4).isEqualTo(listOf(23))
+    }
+
+    @Test
+    fun `new subscribers get the latest query results`() {
+        //
+        val rdb = RDB<AppState>(AppState(), reducer)
     }
 
     @Test

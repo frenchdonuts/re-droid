@@ -105,7 +105,7 @@ class RDB<AppState>(private val init: AppState,
                     .filter { p -> p._1 != p._2 }
                     .map { it._1 }
 
-            // Make sure this thing is running(queries are updating) even if "no one" is subscribed to it
+            // Make sure this thing is running(query results are updating) even if "no one" is subscribed to it
             o.subscribe()
             observers += Pair(g, o)
         }
