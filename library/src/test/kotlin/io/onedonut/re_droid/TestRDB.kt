@@ -75,11 +75,28 @@ class TestRDB {
     fun `new subscribers get the latest query results`() {
         //
         val rdb = RDB<AppState>(AppState(), reducer)
+
+        rdb.dispatch(IncrementField1)
+
+        val query = { appState: AppState -> One(appState.field1) }
+        var queryResult: Int = -123
+        rdb.execute(query)
+            .subscribe { queryResult = it._1 }
+        assertThat(queryResult).isEqualTo(1)
+
+        rdb.dispatch(IncrementField1)
+        assertThat(queryResult).isEqualTo(2)
+
+        var queryResult2: Int = -1000
+        rdb.execute(query)
+            .subscribe { queryResult2 = it._1 }
+        assertThat(queryResult2).isEqualTo(2)
     }
 
     @Test
     fun `subscribers should be notified if the result of their query changes`() {
-        //
+        // We are really testing if reference equality gives us the correct answer.
+        // Hence the use of One and Two
         val rdb = RDB<AppState>(AppState(), reducer)
 
 
@@ -115,7 +132,8 @@ class TestRDB {
 
     @Test
     fun `subscribers should NOT be notified if the result of the query hasn't changed`() {
-        //
+        // We are really testing if reference equality gives us the correct answer.
+        // Hence the use of Two and Four
         val rdb = RDB<AppState>(AppState(), reducer)
 
         var timesQueryEmitted = 0
