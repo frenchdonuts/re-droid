@@ -9,9 +9,9 @@ import rx.Subscription
  * Created by frenchdonuts on 4/29/16.
  */
 
-open class RxEffect(val asyncComputation: Observable<Action>, val cancellationKey: String = "", origin: String) : Action
+open class RxEffect(val asyncComputation: Observable<Action>, val cancellationKey: String = "", origin: String = "") : Action
 
-class CancelRxEffect(val cancellationKey: String, origin: String) : Action
+class CancelRxEffect(val cancellationKey: String, origin: String = "") : Action
 
 
 // :: Map<String, Subscription> -> (Dispatcher -> Dispatcher)
