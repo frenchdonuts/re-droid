@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/library/library.iml" filepath="$PROJECT_DIR$/library/library.iml" />
-      <module fileurl="file://$PROJECT_DIR$/re-droid.iml" filepath="$PROJECT_DIR$/re-droid.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib/lib.iml" filepath="$PROJECT_DIR$/.idea/modules/lib/lib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/re-droid.iml" filepath="$PROJECT_DIR$/.idea/modules/re-droid.iml" />
     </modules>
   </component>
 </project>

@@ -1,10 +1,9 @@
 package io.onedonut.re_droid.middleware
 
-import android.util.Log
 import io.onedonut.re_droid.Action
 import io.onedonut.re_droid.RDB
-import rx.Observable
-import rx.Subscription
+import io.reactivex.Observable
+import io.reactivex.disposables.Disposable
 
 /**
  * Created by frenchdonuts on 4/29/16.
@@ -16,20 +15,23 @@ data class CancelRxEffect(val cancellationKey: String, val origin: String = "") 
 
 
 // :: Map<String, Subscription> -> (Dispatcher -> Dispatcher)
-fun <AppState> rx(subscriptionMap: MutableMap<String, Subscription>): ((RDB<AppState>, Action) -> Unit) -> ((RDB<AppState>, Action) -> Unit) =
+fun <AppState> rx(subscriptionMap: MutableMap<String, Disposable>): ((RDB<AppState>, Action) -> Unit) -> ((RDB<AppState>, Action) -> Unit) =
         { dispatcher ->
             { rdb, action ->
                 //
                 when (action) {
                     is RxEffect -> {
-                        Log.i("Rx Middleware", "Subsscribing...")
                         subscriptionMap.put(
                                 action.cancellationKey,
-                                action.asyncComputation.subscribe({ rdb.dispatch(it) }, { Log.e(action.origin, it.message) }))
+                                action.asyncComputation.subscribe(
+                                        { rdb.dispatch(it) },
+                                        { System.out.println("action.origin: ${action.origin}, message: ${it.message}") }
+                                )
+                        )
                     }
                     is CancelRxEffect ->
                         if (subscriptionMap.containsKey(action.cancellationKey))
-                            subscriptionMap[action.cancellationKey]?.unsubscribe()
+                            subscriptionMap[action.cancellationKey]?.dispose()
                     // Ignore all other Actions
                     else -> { }
                 }
