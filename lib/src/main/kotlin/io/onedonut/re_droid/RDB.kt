@@ -1,5 +1,6 @@
 package io.onedonut.re_droid
 
+import io.onedonut.re_droid.utils.Init
 import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
 import io.reactivex.Scheduler
@@ -12,21 +13,21 @@ import java.util.concurrent.CopyOnWriteArrayList
  *
  *
  * @param init The initial State of your Application
- * @param reducer Your implementation of the State Transitions
- * @param scheduler The rx.Scheduler on which you run your Reducer and deliver your query results
+ * @param transactor Your implementation of the State Transitions. Not necessarily pure.
+ * @param scheduler The rx.Scheduler on which you run your transactor and deliver your query results
  * @param middlewares
  *
  */
 class RDB<Shape>(init: Shape,
-                    private val reducer: (Action, Shape) -> Shape,
+                    private val transactor: (Action, Shape) -> Shape,
                     private val scheduler: Scheduler,
                     vararg middlewares: Middleware<Shape>) {
     //
-    data class Entry<Shape>(val emitter: ObservableEmitter<in Shape>, val state: Shape)
+    data class Entry(val emitter: ObservableEmitter<in Action>, val action: Action)
 
     // We need a thread-safe queue to make sure emitters get every resulting state in response to Actions
-    private val queue: ConcurrentLinkedQueue<Entry<Shape>> = ConcurrentLinkedQueue()
-    private val emitters: CopyOnWriteArrayList<ObservableEmitter<in Shape>> = CopyOnWriteArrayList()
+    private val queue: ConcurrentLinkedQueue<Entry> = ConcurrentLinkedQueue()
+    private val emitters: CopyOnWriteArrayList<ObservableEmitter<in Action>> = CopyOnWriteArrayList()
 
     @Volatile private var _curShape: Shape = init
     val curShape: Shape
@@ -37,18 +38,18 @@ class RDB<Shape>(init: Shape,
     @Volatile private var emitting = false
 
 
-    // Our pure middleware - simply applies the reducer
-    private val pure: Middleware<Shape> =
+    // Our transaction middleware - simply applies our transactor
+    private val transaction: Middleware<Shape> =
             {
                 dispatcher ->
                 {
                     rdb, action ->
                     //
                     synchronized(this) {
-                        _curShape = reducer(action, _curShape)
+                        _curShape = transactor(action, _curShape)
 
                         for (emitter in emitters)
-                            queue.add(Entry(emitter, _curShape))
+                            queue.add(Entry(emitter, action))
                     }
 
                     emit()
@@ -58,7 +59,7 @@ class RDB<Shape>(init: Shape,
     private val dispatcher: Dispatcher<Shape>
 
     init {
-        dispatcher = (listOf(pure) + middlewares.asList())
+        dispatcher = (listOf(transaction) + middlewares.asList())
                 // Start w/ a dispatcher that does nothing...
                 .fold({ rdb, action -> }) {
                     acc, currentMiddleware ->
@@ -75,14 +76,9 @@ class RDB<Shape>(init: Shape,
         dispatcher.invoke(this, action)
     }
 
-    fun appStates(): Observable<Shape> {
+    fun listen(): Observable<Action> {
         return Observable.create { emitter ->
-            val emit: Shape =
-                    synchronized(this) {
-                        _curShape
-                    }
-            // Emit latest state
-            emitter.onNext(emit)
+            emitter.onNext(Init)
 
             synchronized(this) {
                 emitters.add(emitter)
@@ -92,7 +88,7 @@ class RDB<Shape>(init: Shape,
         }
     }
 
-    private fun setDisposable(emitter: ObservableEmitter<in Shape>): Unit {
+    private fun setDisposable(emitter: ObservableEmitter<in Action>): Unit {
         emitter.setDisposable(Disposables.fromAction {
             synchronized(this) {
                 emitters.remove(emitter)
@@ -126,7 +122,7 @@ class RDB<Shape>(init: Shape,
                         queue.poll()
                     }
 
-            entry.emitter.onNext(entry.state)
+            entry.emitter.onNext(entry.action)
         }
     }
 }
