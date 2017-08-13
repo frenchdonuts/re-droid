@@ -9,4 +9,6 @@ import io.onedonut.re_droid.Action
 /**
  * The Action that does nothing
  */
+object Id : Action
+
 object Init : Action
